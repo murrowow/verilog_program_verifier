@@ -1097,8 +1097,6 @@ checktime_condition
    : mintypmax_expression
    ;
 
-//controlled_reference_event : controlled_timing_check_event ;
-//data_event : timing_check_event ;
 delayed_data
    : terminal_identifier
    | terminal_identifier '[' constant_mintypmax_expression ']'
@@ -1560,6 +1558,9 @@ One_line_comment
    : '//' .*? '\r'? '\n' -> channel (HIDDEN)
    ;
 
+ensures_comment
+   : '//@' .*? '\r'? '\n' -> channel (HIDDEN)
+   ;
 
 Block_comment
    : '/*' .*? '*/' -> channel (HIDDEN)

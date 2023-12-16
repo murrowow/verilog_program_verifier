@@ -17,7 +17,7 @@ class verilogVisitor(VerilogVisitor):
         self.visit(ctx.list_of_ports())
 
         #outputs 
-        z3_file_content = inp = aux = var_dec = var_out = eq = ""
+        z3_file_content = inp = var_dec = var_out = eq = ""
         eqn = []
 
         for i in range(len(ctx.module_item())):
@@ -118,7 +118,6 @@ class verilogVisitor(VerilogVisitor):
         term = ""
         if ctx.unary_operator():
             term = self.visit(ctx.unary_operator())
-        # print(ctx.primary().getText())
         term += "("+self.visit(ctx.primary())+")"
         return term
 
@@ -137,7 +136,7 @@ class verilogVisitor(VerilogVisitor):
 
     #negation or an atom or singular clause
     def visitUnary_operator(self, ctx: VerilogParser.Unary_operatorContext):
-        if str(ctx.getText()) == "~":
+        if (str(ctx.getText()) == "~") or (str(ctx.getText()) == "!"):
             op = "Not"
         else:
             op = ""
@@ -159,6 +158,7 @@ class verilogVisitor(VerilogVisitor):
     def visitNet_declaration(self, ctx: VerilogParser.Net_declarationContext):
         return self.visit(ctx.list_of_net_identifiers())
 
+    #everything down here is sort of like reforming everything to something that adheres to Verilog syntax
     def visitList_of_net_identifiers(self, ctx: VerilogParser.List_of_net_identifiersContext):
         lst = str(ctx.getText()).split(",")
         if len(lst) > 1:
