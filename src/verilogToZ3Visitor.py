@@ -12,13 +12,13 @@ class verilogVisitor(VerilogVisitor):
         self.output_var = ""
 
     def visitModule_declaration(self, ctx: VerilogParser.Module_declarationContext):
-
         self.visit(ctx.module_identifier())
         self.visit(ctx.list_of_ports())
-        z3filecontent = ""
+        z3_file_content = ""
         inp = aux = var_dec = var_out = ""
         eq = ""
         eqn = []
+
         for i in range(len(ctx.module_item())):
             if ctx.module_item()[i].port_declaration():
                 if ctx.module_item()[i].port_declaration().input_declaration():
@@ -50,22 +50,14 @@ class verilogVisitor(VerilogVisitor):
         eq = '\n'.join(eqn).replace(
             "Int(1'b1)", "True").replace("Int(1'b0)", "False")
         inp = inp[:-2]
-        z3constraint1 = ""
+        z3_constraint1 = ""
         assign = ""
-        # out_list = "outs = ["
-        # for i in range(self.num_of_outputs):
-        #     z3constraint1 += output_vars[i]+" = ($$"+str(i)+")\n	"
-        #     assign += output_vars[i]+" = nn_out"+str(i)+"\n	"
-        #     out_list += output_vars[i] + ", "
-        # out_list = out_list[:-2]+"]"
-        z3constraint2 = ""+eq
+        z3_constraint2 = ""+eq
 
-        # func_def = "def get_z3formula():\n"
-        z3filecontent = var_dec+"\n"+z3constraint1+"\n"+z3constraint2 + \
+        z3_file_content = var_dec+"\n"+z3_constraint1+"\n"+z3_constraint2 + \
             "\n	"
-        z3filecontent = z3filecontent.replace("_", "")
-
-        return z3filecontent
+        z3_file_content = z3_file_content.replace("_", "")
+        return z3_file_content
 
     def visitModule_identifier(self, ctx: VerilogParser.Module_identifierContext):
         return

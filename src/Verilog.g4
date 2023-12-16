@@ -1,56 +1,8 @@
-/*
- [The "BSD licence"]
- Copyright (c) 2013 Terence Parr
- All rights reserved.
-
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions
- are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
- 3. The name of the author may not be used to endorse or promote products
-    derived from this software without specific prior written permission.
-
- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-// from http://www.syncad.com/VeriLogger_bnf_Syntax_Verilog_2001.htm
+// BNF found from http://www.syncad.com/VeriLogger_bnf_Syntax_Verilog_2001.htm
 // and standards ref http://www.eda.org/vlog-synth/vlogrtl.pdf
-// Start symbol is source_text. Converted to ANTLR v4 by Terence Parr (in a hurry)
-// blech: spec is wrong. see rule parameter_declaration_ for example.
-// COMPILER DIRECTIVES: I converted them to C preproc and preprocessed with gcc -E.
 
 grammar Verilog;
 
-// 1 Source text
-// 1.1 Library source text
-/* -- Some of this grammar removed as I didn't care about it
-library_text : ( library_descriptions )* ;
-
-library_descriptions
-	 : library_declaration
-	 | include_statement
-	 | config_declaration
-;
-
-library_declaration :
-'library' library_identifier File_path_spec ( ( ',' File_path_spec )* )? ( '-incdir' File_path_spec ( ',' File_path_spec )* )? ';' ;
-
-File_path_spec : ([/~]|'./') ~[ \r\t\n]*? ;
-
-include_statement : 'include' File_path_spec ';' ;
-*/
 // 1.2 Configuration source text
 config_declaration
    : 'config' config_identifier ';' design_statement (config_rule_statement)* 'endconfig'
@@ -93,7 +45,6 @@ use_clause
    ;
 
 // 1.3 Module and primitive source text
-// START SYMBOL
 source_text
    : timing_spec? description* EOF
    ;
@@ -164,7 +115,6 @@ module_or_generate_item
    | attribute_instance* parameter_override
    | attribute_instance* continuous_assign
    | attribute_instance* gate_instantiation
-//   | attribute_instance* udp_instantiation
    | attribute_instance* module_instantiation
    | attribute_instance* initial_construct
    | attribute_instance* always_construct
@@ -211,9 +161,6 @@ parameter_declaration
    : parameter_declaration_ ';'
    ;
 
-// split out semi on end. spec grammar is wrong. It won't allow
-// #(parameter B=8) since it wants a ';' in (...). Rule
-// module_parameter_port_list calls this one.
 parameter_declaration_
    : 'parameter' ('signed')? (range_)? list_of_param_assignments
    | 'parameter' 'integer' list_of_param_assignments
@@ -443,8 +390,6 @@ range_
    ;
 
 // 2.6 Function declarations
-// spec didn't allow optional block_item_declaration and function_item_declaration
-// spec didn't allow temp funcs.
 function_declaration
    : 'function' ('automatic')? ('signed')? (range_or_type)? function_identifier ';' function_item_declaration* function_statement? 'endfunction'
    | 'function' ('automatic')? ('signed')? (range_or_type)? function_identifier '(' function_port_list ')' ';' block_item_declaration* function_statement? 'endfunction'
@@ -490,8 +435,6 @@ task_port_item
    : attribute_instance* tf_declaration
    ;
 
-// TJP added net_type? to these input/output/inout decls. wasn't in spec.
-// factored out header
 tf_decl_header
    : ('input' | 'output' | 'inout') net_type? ('reg')? ('signed')? (range_)?
    | ('input' | 'output' | 'inout') net_type? (task_port_type)?
@@ -754,79 +697,6 @@ generate_block
    : 'begin' (':' generate_block_identifier)? (generate_item)* 'end'
    ;
 
-/*
-// 5 UDP declaration and instantiation
-// 5.1 UDP declaration
-
-udp_declaration :
-attribute_instance* 'primitive' udp_identifier ( udp_port_list ) ';' udp_port_declaration ( udp_port_declaration )* udp_body 'endprimitive'
-| attribute_instance* 'primitive' udp_identifier ( udp_declaration_port_list ) ';' udp_body 'endprimitive'
-;
-
-// 5.2 UDP ports
-
-udp_port_list : output_port_identifier ',' input_port_identifier ( ',' input_port_identifier )* ;
-udp_declaration_port_list : udp_output_declaration ',' udp_input_declaration ( ',' udp_input_declaration )* ;
-udp_port_declaration : udp_output_declaration ';'
-| udp_input_declaration ';'
-| udp_reg_declaration ';'
-;
-
-udp_output_declaration :
-attribute_instance* 'output' port_identifier
-|
-attribute_instance* 'output' 'reg' port_identifier ( '=' constant_expression )?
-;
-
-udp_input_declaration : attribute_instance* 'input' list_of_port_identifiers ;
-udp_reg_declaration : attribute_instance* 'reg' variable_identifier ;
-*/
-// 5.3 UDP body
-/** can take out user defined primitives
-
-Use a lexer mode to handle table: switch to new mode upon table, switch
-back upon endtable.
-
-udp_body : combinational_body | sequential_body ;
-combinational_body : 'table' Combinational_entry+ 'endtable' ;
-Combinational_entry : Level_input_list White_space? ':' White_space? Output_symbol White_space? ';' ;
-sequential_body : ( udp_initial_statement )? 'table' Sequential_entry+ 'endtable' ;
-udp_initial_statement : 'initial' output_port_identifier '=' Init_val ';' ;
-
-Init_val : '1\'b0' | '1\'b1' | '1\'bx' | '1\'bX' | '1\'B0' | '1\'B1' | '1\'Bx' | '1\'BX' | '1' | '0' ;
-
-Sequential_entry : Seq_input_list White_space? ':' White_space? Current_state White_space? ':' White_space? Next_state White_space? ';' ;
-
-fragment
-Seq_input_list : Level_input_list | Edge_input_list ;
-
-fragment
-Level_input_list : Level_symbol+ ;
-
-fragment
-Edge_input_list : Level_symbol* Edge_indicator Level_symbol* ;
-fragment
-Edge_indicator : '(' Level_symbol Level_symbol ')' | Edge_symbol ;
-
-fragment
-Current_state : Level_symbol ;
-fragment
-Next_state : Output_symbol | '-' ;
-
-fragment
-Output_symbol : [01xX] ;
-fragment
-Level_symbol : [01xX?bB] ;
-fragment
-Edge_symbol : [rRfFpPnN*] ;
-
-// 5.4 UDP instantiation
-
-udp_instantiation : udp_identifier ( drive_strength )? ( delay2 )? udp_instance ( ',' udp_instance )* ';' ;
-udp_instance : ( name_of_udp_instance )? '(' output_terminal ',' input_terminal ( ',' input_terminal )* ')' ;
-name_of_udp_instance : udp_instance_identifier ( range_ )? ;
-
-*/
 continuous_assign
    : 'assign' (drive_strength)? (delay3)? list_of_net_assignments ';'
    ;
@@ -1223,58 +1093,6 @@ polarity_operator
    | '-'
    ;
 
-// 7.5 System timing checks
-// 7.5.1 System timing check commands
-/*
-system_timing_check :
-setup_timing_check
-| hold_timing_check
-| setuphold_timing_check
-| recovery_timing_check
-| removal_timing_check
-| recrem_timing_check
-| skew_timing_check
-| timeskew_timing_check
-| fullskew_timing_check
-| period_timing_check
-| width_timing_check
-| nochange_timing_check
-;
-
-setup_timing_check : '$setup' '(' data_event ',' reference_event ',' timing_check_limit ( ',' ( notify_reg )? )? ')' ';' ;
-hold_timing_check : '$hold' '(' reference_event ',' data_event ',' timing_check_limit ( ',' ( notify_reg )? )? ')' ';' ;
-setuphold_timing_check :
-'$setuphold' '(' reference_event ',' data_event ',' timing_check_limit ',' timing_check_limit ( ',' ( notify_reg )? ( ',' ( stamptime_condition )? ( ',' ( checktime_condition )? ( ',' ( delayed_reference )? ( ',' ( delayed_data )? )? )? )? )? )? ')' ';'
-;
-
-recovery_timing_check : '$recovery' '(' reference_event ',' data_event ',' timing_check_limit ( ',' ( notify_reg )? )? ')' ';' ;
-removal_timing_check : '$removal' '(' reference_event ',' data_event ',' timing_check_limit ( ',' ( notify_reg )? )? ')' ';' ;
-
-recrem_timing_check :
-'$recrem' '(' reference_event ',' data_event ',' timing_check_limit ',' timing_check_limit ( ',' ( notify_reg )? ( ',' ( stamptime_condition )? ( ',' ( checktime_condition )? ( ',' ( delayed_reference )? ( ',' ( delayed_data )? )? )? )? )? )? ')' ';'
-;
-
-skew_timing_check : '$skew' '(' reference_event ',' data_event ',' timing_check_limit ( ',' ( notify_reg )? )? ')' ';' ;
-
-timeskew_timing_check :
-'$timeskew' '(' reference_event ',' data_event ',' timing_check_limit ( ',' ( notify_reg )? ( ',' ( event_based_flag )? ( ',' ( remain_active_flag )? )? )? )? ')' ';'
-;
-
-fullskew_timing_check :
-'$fullskew' '(' reference_event ',' data_event ',' timing_check_limit ',' timing_check_limit ( ',' ( notify_reg )? ( ',' ( event_based_flag )? ( ',' ( remain_active_flag )? )? )? )? ')' ';'
-;
-
-period_timing_check : '$period' '(' controlled_reference_event ',' timing_check_limit ( ',' ( notify_reg )? )? ')' ';' ;
-
-width_timing_check :
-'$width' '(' controlled_reference_event ',' timing_check_limit ',' threshold ( ',' ( notify_reg )? )? ')' ';'
-;
-
-nochange_timing_check :
-'$nochange' '(' reference_event ',' data_event ',' start_edge_offset ',' end_edge_offset ( ',' ( notify_reg )? )? ')' ';'
-;
-*/
-// 7.5.2 System timing check command arguments
 checktime_condition
    : mintypmax_expression
    ;
@@ -1324,54 +1142,6 @@ timing_check_limit
    : expression
    ;
 
-// 7.5.3 System timing check event definitions
-/*
-timing_check_event :
-( timing_check_event_control )? specify_terminal_descriptor ( '&&&' timing_check_condition )?
-;
-
-controlled_timing_check_event :
-timing_check_event_control specify_terminal_descriptor ( '&&&' timing_check_condition )?
-;
-
-timing_check_event_control :
-'posedge'
-| 'negedge'
-//| edge_control_specifier
-;
-
-specify_terminal_descriptor :
-specify_input_terminal_descriptor
-| specify_output_terminal_descriptor
-;
-*/
-/* context-sensitive, leave for now
-edge_control_specifier : 'edge' '[' Edge_descriptor ( ',' Edge_descriptor )? ']' ;
-
-fragment
-Edge_descriptor :
-'01'
-| '10'
-| [xXzZ] [01]
-| [01] [xXzZ]
-;
-
-timing_check_condition :
-scalar_timing_check_condition
-| '(' scalar_timing_check_condition ')'
-;
-
-scalar_timing_check_condition :
-expression
-| '~' expression
-| expression '==' Scalar_constant
-| expression '===' Scalar_constant
-| expression '!=' Scalar_constant
-| expression '!==' Scalar_constant
-;
-
-Scalar_constant : '1\'b0' | '1\'b1' | '1\'B0' | '1\'B1' | 'b0' | 'b1' | 'B0' | 'B1' | '1' | '0' ;
-*/
 // 8 Expressions
 // 8.1 Concatenations
 concatenation
@@ -1453,15 +1223,6 @@ constant_expression
    : expression
    ;
 
-/*
-constant_expression
-    : constant_primary
-    | unary_operator attribute_instance* constant_primary
-    | constant_expression binary_operator attribute_instance* constant_expression
-    | constant_expression ? attribute_instance* constant_expression ':' constant_expression
-    | String
-    ;
-*/
 constant_mintypmax_expression
    : constant_expression
    | constant_expression ':' constant_expression ':' constant_expression
