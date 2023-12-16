@@ -10,13 +10,13 @@ place into src your simple bit-level Verilog code
 
 you can can the verilog2z3.py file in order to produce a z3 equivalent implementation of that file
 
-$python verilog2z3.py verilog_spec=<your verilog file> 
+$python verilog2z3.py verilog_spec=your_verilog_file 
 
-This will produce some file called <your verilog file>.py
+This will produce some file called your_verilog_file.py
 
 You can simply run that python file to produce your output
 
-$python <your verilog file>.py
+$python your verilog file.py
 
 At the moment, the programmer is required to have some understanding of Z3 and they must manually add their ensures clause conversion at the end of the file :(
     
