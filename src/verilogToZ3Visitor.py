@@ -11,54 +11,57 @@ class verilogVisitor(VerilogVisitor):
         self.verilog_spec_location = verilog_spec_location
         self.output_var = ""
 
+    #go through the parse true and reexpress everything as a 
     def visitModule_declaration(self, ctx: VerilogParser.Module_declarationContext):
         self.visit(ctx.module_identifier())
         self.visit(ctx.list_of_ports())
-        z3_file_content = ""
-        inp = aux = var_dec = var_out = ""
-        eq = ""
+
+        #outputs 
+        z3_file_content = inp = aux = var_dec = var_out = eq = ""
         eqn = []
 
         for i in range(len(ctx.module_item())):
+            #handle input and output wires
             if ctx.module_item()[i].port_declaration():
                 if ctx.module_item()[i].port_declaration().input_declaration():
                     inp += self.visit(ctx.module_item()[i])
                     if i < len(ctx.module_item()) - 1:
                         inp += ", "
-            if ctx.module_item()[i].port_declaration():
                 if ctx.module_item()[i].port_declaration().output_declaration():
                     var_out += self.visit(ctx.module_item()[i])
-            if ctx.module_item()[i].module_or_generate_item():
-                if ctx.module_item()[i].module_or_generate_item().module_or_generate_item_declaration():
-                    aux += self.visit(ctx.module_item()[i]) + "\n	"
+            
+            #define boolean variables depending on the input and output
             if inp and var_out:
-                rinp = inp.split(",")
-                num_inps = len(rinp)
-                rinp = " ".join(rinp)
-                rinp = rinp.replace("  ", " ")
+                #separate the variables on ","
+                r_inp = inp.split(",")
+                num_inps = len(r_inp)
+                r_inp = " ".join(r_inp)
+                r_inp = r_inp.replace("  ", " ")
+                #rewrite into the boolean variable declaration
                 if num_inps > 2:
-                    input_dec = inp[:-2] + " = Bools('" + (rinp[:-1]) + "')"
+                    input_dec = inp[:-2] + " = Bools('" + (r_inp[:-1]) + "')"
                 else:
-                    input_dec = inp[:-2] + " = Bool('" + (rinp[:-1]) + "')"
-                var_dec = ""+input_dec+"\n"+aux+"\n"+var_out
+                    input_dec = inp[:-2] + " = Bool('" + (r_inp[:-1]) + "')"
+                #each line of code needs to go onto a separate line
+                var_dec = "" + input_dec + "\n" + var_out
             if ctx.module_item()[i].module_or_generate_item():
                 if ctx.module_item()[i].module_or_generate_item().continuous_assign():
-                    const = self.visit(ctx.module_item()[i])[1:-2]+"\n"
+                    const = self.visit(ctx.module_item()[i])[1:-2] + "\n"
                     eqn.append(const)
 
-        eqn = [i[:-3]+")" for i in eqn]
-        eq = '\n'.join(eqn).replace(
-            "Int(1'b1)", "True").replace("Int(1'b0)", "False")
-        inp = inp[:-2]
-        z3_constraint1 = ""
-        assign = ""
-        z3_constraint2 = ""+eq
+        #turn equations into representation
+        eqn = [i[:-3] + ")" for i in eqn]
+        eq = '\n'.join(eqn).replace("Int(1'b1)", "True").replace("Int(1'b0)", "False")
 
-        z3_file_content = var_dec+"\n"+z3_constraint1+"\n"+z3_constraint2 + \
-            "\n	"
+        z3_constraint = ""+eq
+
+        #turn into an actual z3 format
+        z3_file_content = var_dec + "\n" + z3_constraint + "\n	"
         z3_file_content = z3_file_content.replace("_", "")
         return z3_file_content
 
+    #the rest of these are re-definitions of the original VerilogVisitor.py 
+    #many functions included in the original were not updated
     def visitModule_identifier(self, ctx: VerilogParser.Module_identifierContext):
         return
 
@@ -132,6 +135,7 @@ class verilogVisitor(VerilogVisitor):
             return "Int("+ctx.getText()+")"
         return str(ctx.getText())
 
+    #negation or an atom or singular clause
     def visitUnary_operator(self, ctx: VerilogParser.Unary_operatorContext):
         if str(ctx.getText()) == "~":
             op = "Not"
@@ -139,6 +143,7 @@ class verilogVisitor(VerilogVisitor):
             op = ""
         return op
 
+    #a operation between 2 different atoms/clauses
     def visitBinary_operator(self, ctx: VerilogParser.Binary_operatorContext):
         if str(ctx.getText()) == "&":
             op = "And"
